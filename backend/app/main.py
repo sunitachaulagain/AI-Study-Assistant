@@ -21,3 +21,16 @@ def health():
     return {
         "status" : "server is running successfully!"
     }
+
+@app.get("/documents/{document_id}")
+def get_document(document_id: int):
+    return {
+        "document_id" : document_id,
+        "message" : "Document found successfully"
+    }
+
+@app.get("/search")
+def search(subject : str):
+    return {
+        "subject" : subject
+    }
