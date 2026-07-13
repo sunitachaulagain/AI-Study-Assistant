@@ -34,3 +34,20 @@ def search(subject : str):
     return {
         "subject" : subject
     }
+
+
+# post method
+
+from pydantic import BaseModel
+
+class ChatRequest(BaseModel):
+    question : str
+
+
+@app.post("/chat")
+def chat(request : ChatRequest):
+    return { 
+        "message" : "Question received successfully!",
+        "question" : request.question
+
+    }
