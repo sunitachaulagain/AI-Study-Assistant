@@ -44,10 +44,14 @@ class ChatRequest(BaseModel):
     question : str
 
 
-@app.post("/chat")
+class chatResponse(BaseModel):
+    status : str
+    answer : str
+
+@app.post("/chat", response_model=chatResponse)
 def chat(request : ChatRequest):
     return { 
-        "message" : "Question received successfully!",
-        "question" : request.question
+        "status" : "success",
+        "answer" : f" you asked : {request.question}"
 
     }
