@@ -36,3 +36,19 @@ def get_documents(document_id : int):
     return {
         "message" : "Document not found"
     }
+
+
+@router.delete("/documents/{document_id}")
+def delete_document(document_id : int):
+    for document in documents:
+        if document["id"] == document_id:
+            documents.remove(document)
+
+            return {
+                "message" : "Document deleted successfully",
+                "deleted_document" : document
+            }
+
+    return{
+        "message" : "Document not found"
+    }    
