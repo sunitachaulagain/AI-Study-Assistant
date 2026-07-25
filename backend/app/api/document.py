@@ -52,3 +52,19 @@ def delete_document(document_id : int):
     return{
         "message" : "Document not found"
     }    
+
+
+@router.put("/documents/{document_id}")
+def update_document(document_id : int, document : DocumentRequest):
+    for existing_document in documents:
+        if existing_document["id"] == document_id:
+            existing_document["title"] = document.title
+
+            return {
+                "message" : "Document updated successfully",
+                "document" : existing_document
+            }
+
+    return { 
+        "message" : "Document not found"
+    }    
