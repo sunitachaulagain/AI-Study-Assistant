@@ -2,9 +2,18 @@ from fastapi import FastAPI
 from backend.app.api import document
 
 
+from backend.app.database.database import Base, engine
+from backend.app.models.document import Document
+
+
+
 app = FastAPI()
 
+print(Base.metadata.tables.keys())
+Base.metadata.create_all(bind=engine)
 app.include_router(document.router)
+
+
 
 @app.get("/")
 def home():
