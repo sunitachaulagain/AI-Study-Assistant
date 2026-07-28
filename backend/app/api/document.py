@@ -50,33 +50,49 @@ def get_documents(db : session = Depends(get_db)):
     }
 
 
+# delete document
 @router.delete("/documents/{document_id}")  
-def delete_document(document_id : int):
-    for document in documents:
-        if document["id"] == document_id:
-            documents.remove(document)
+def delete_document(
+    document_id : int,
+    db: session = Depends(get_db)
+     ):
 
-            return {
-                "message" : "Document deleted successfully",
-                "deleted_document" : document
+    db_document = (
+         db.query(Document)
+         .filter(Document.id == document_id)
+         .first()
+    )     
+
+    db.delete(db_document)
+    db.commit()
+    return {
+            "message" : "Document deleted successfully",
             }
+ 
 
-    return{
-        "message" : "Document not found"
-    }    
-
-
+# update document
 @router.put("/documents/{document_id}")
-def update_document(document_id : int, document : DocumentRequest):
-    for existing_document in documents:
-        if existing_document["id"] == document_id:
-            existing_document["title"] = document.title
+def update_document(
+    document_id : int, 
+    document : DocumentRequest,
+    db: session = Depends(get_db)
+    ):
 
+    db_document = (
+        db.query(Document).filter(Document.id == document_id).first()
+    )
+
+    if db_document is None:
             return {
-                "message" : "Document updated successfully",
-                "document" : existing_document
+                "message" : "Document not found"
             }
 
-    return { 
-        "message" : "Document not found"
-    }    
+    db_document.title = document.title
+    db.commit()
+    db.refresh(db_document)
+
+    return {
+            "message" : "Document updated successfully",
+            "document" : db_document
+            }
+  
