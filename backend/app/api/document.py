@@ -9,10 +9,6 @@ from fastapi import Depends
 router = APIRouter()
 
 
-documents = []
-next_id = 1
-
-
 # helper function
 def get_db():
     db = SessionLocal()
@@ -24,23 +20,26 @@ def get_db():
 class DocumentRequest(BaseModel):
     title : str
 
-
+# create data(insert in database)
 @router.post("/documents")
-def create_document(document : DocumentRequest):
-    global next_id
+def create_document(
+    document : DocumentRequest,
+    db : session = Depends(get_db)
+    ):
 
-    new_document = {
-        "id" : next_id,
-        "title" : document.title
-    }
+    db_document = Document(
+        title = document.title
+    )
 
-    documents.append(new_document)
-    next_id += 1
+    db.add(db_document)
+    db.commit()
+    db.refresh(db_document)
 
     return {
         "message" : "Document created successfully! ",
-        "documents" : documents
+        "documents" : db_document
     }
+
 
 # return data from database
 @router.get("/documents/{document_id}")
@@ -51,7 +50,7 @@ def get_documents(db : session = Depends(get_db)):
     }
 
 
-@router.delete("/documents/{document_id}")
+@router.delete("/documents/{document_id}")  
 def delete_document(document_id : int):
     for document in documents:
         if document["id"] == document_id:
