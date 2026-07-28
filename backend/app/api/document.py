@@ -1,10 +1,25 @@
 from fastapi import APIRouter
 from pydantic import BaseModel
+from sqlalchemy.orm import session
+
+from backend.app.database.database import SessionLocal
+from backend.app.models.document import Document
+from fastapi import Depends
 
 router = APIRouter()
 
+
 documents = []
 next_id = 1
+
+
+# helper function
+def get_db():
+    db = SessionLocal()
+    try :
+        yield db
+    finally:
+        db.close()    
 
 class DocumentRequest(BaseModel):
     title : str
@@ -27,14 +42,12 @@ def create_document(document : DocumentRequest):
         "documents" : documents
     }
 
-
+# return data from database
 @router.get("/documents/{document_id}")
-def get_documents(document_id : int):
-    for document in documents:
-        if document["id"] == document_id:
-            return document
+def get_documents(db : session = Depends(get_db)):
+    documents = db.query(Document).all()
     return {
-        "message" : "Document not found"
+        "documents" : documents
     }
 
 
