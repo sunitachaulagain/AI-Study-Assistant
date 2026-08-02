@@ -16,3 +16,8 @@ class Document(Base):
         String,
         nullable=False
     )
+
+    file_path : Mapped[str] = mapped_column(
+        String,
+        nullable=False
+    )

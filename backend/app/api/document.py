@@ -1,10 +1,11 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends, UploadFile, File
 from pydantic import BaseModel
 from sqlalchemy.orm import session
 
 from backend.app.database.database import SessionLocal
 from backend.app.models.document import Document
-from fastapi import Depends
+
+import os
 
 router = APIRouter()
 
@@ -95,4 +96,14 @@ def update_document(
             "message" : "Document updated successfully",
             "document" : db_document
             }
-  
+
+
+@router.post("/upload")
+async def upload_pdf(
+    file : UploadFile = File(...),
+    db : session = Depends(get_db)
+):
+    return {
+        "filename" : file.filename,
+        "content_type" : file.content_type
+    }
