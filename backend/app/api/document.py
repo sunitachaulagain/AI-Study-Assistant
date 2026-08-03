@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, UploadFile, File
 from pydantic import BaseModel
-from sqlalchemy.orm import session
+from sqlalchemy.orm import Session
 
 from backend.app.database.database import SessionLocal
 from backend.app.models.document import Document
@@ -25,7 +25,7 @@ class DocumentRequest(BaseModel):
 @router.post("/documents")
 def create_document(
     document : DocumentRequest,
-    db : session = Depends(get_db)
+    db : Session = Depends(get_db)
     ):
 
     db_document = Document(
@@ -44,7 +44,7 @@ def create_document(
 
 # return data from database
 @router.get("/documents/{document_id}")
-def get_documents(db : session = Depends(get_db)):
+def get_documents(db : Session = Depends(get_db)):
     documents = db.query(Document).all()
     return {
         "documents" : documents
@@ -55,7 +55,7 @@ def get_documents(db : session = Depends(get_db)):
 @router.delete("/documents/{document_id}")  
 def delete_document(
     document_id : int,
-    db: session = Depends(get_db)
+    db: Session = Depends(get_db)
      ):
 
     db_document = (
@@ -76,7 +76,7 @@ def delete_document(
 def update_document(
     document_id : int, 
     document : DocumentRequest,
-    db: session = Depends(get_db)
+    db: Session = Depends(get_db)
     ):
 
     db_document = (
@@ -101,9 +101,28 @@ def update_document(
 @router.post("/upload")
 async def upload_pdf(
     file : UploadFile = File(...),
-    db : session = Depends(get_db)
+    db : Session = Depends(get_db)
 ):
-    return {
-        "filename" : file.filename,
-        "content_type" : file.content_type
+    contents = await file.read()
+    file_path = os.path.join("uploads", file.filename)
+    print(file_path)
+
+    with open(file_path, "wb") as buffer:
+        buffer.write(contents)
+
+    new_document = Document(
+        title = file.filename,
+        file_path = file_path
+    )
+    db.add(new_document)
+    db.commit()
+    db.refresh(new_document)
+
+    return{
+        "message" : "PDF upload successfully!",
+        "documeny" : {
+            "id" : new_document.id,
+            "title" : new_document.title,
+            "file_path" : new_document.file_path
+        }
     }
