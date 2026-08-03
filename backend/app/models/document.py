@@ -1,4 +1,4 @@
-from sqlalchemy import Integer, String
+from sqlalchemy import Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from backend.app.database.database import Base
@@ -21,3 +21,9 @@ class Document(Base):
         String,
         nullable=False
     )
+
+    content : Mapped[str] = mapped_column(
+        Text,
+        nullable=False
+    )
+    

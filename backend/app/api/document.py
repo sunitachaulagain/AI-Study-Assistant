@@ -5,6 +5,8 @@ from sqlalchemy.orm import Session
 from backend.app.database.database import SessionLocal
 from backend.app.models.document import Document
 
+from pypdf import PdfReader
+
 import os
 
 router = APIRouter()
@@ -103,16 +105,33 @@ async def upload_pdf(
     file : UploadFile = File(...),
     db : Session = Depends(get_db)
 ):
+    # Read uploaded file
     contents = await file.read()
-    file_path = os.path.join("uploads", file.filename)
-    print(file_path)
 
+    # Decide where to save it
+    file_path = os.path.join("uploads", file.filename)
+
+    # Save it to disk
     with open(file_path, "wb") as buffer:
         buffer.write(contents)
 
+    # open the saved PDF
+    reader = PdfReader(file_path)
+
+    # Extract all text
+    all_text = ""
+
+    for page in reader.pages:
+        text = page.extract_text()
+
+        if text:
+            all_text += text + "\n"
+        
+    # save to database
     new_document = Document(
         title = file.filename,
-        file_path = file_path
+        file_path = file_path,
+        content = all_text
     )
     db.add(new_document)
     db.commit()
