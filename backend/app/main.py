@@ -4,10 +4,12 @@ from backend.app.api import document
 
 from backend.app.database.database import Base, engine
 from backend.app.models.document import Document
-
+from backend.app.api.chat import router as chat_router
 
 
 app = FastAPI()
+
+app.include_router(chat_router)
 
 print(Base.metadata.tables.keys())
 Base.metadata.create_all(bind=engine)
