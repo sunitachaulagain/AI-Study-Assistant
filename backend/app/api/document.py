@@ -1,8 +1,10 @@
-from fastapi import APIRouter, Depends, UploadFile, File
+from fastapi import APIRouter, Depends, UploadFile, File, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from backend.app.database.database import SessionLocal
+from backend.app.api.deps import get_db, get_current_user
+from backend.app.api.deps import get_current_user
+from backend.app.models.user import User
 from backend.app.models.document import Document
 
 from pypdf import PdfReader
@@ -10,100 +12,143 @@ from pypdf import PdfReader
 import os
 
 router = APIRouter()
-
-
-# helper function
-def get_db():
-    db = SessionLocal()
-    try :
-        yield db
-    finally:
-        db.close()    
+ 
 
 class DocumentRequest(BaseModel):
     title : str
 
-# create data(insert in database)
-@router.post("/documents")
-def create_document(
-    document : DocumentRequest,
-    db : Session = Depends(get_db)
-    ):
+# # create data(insert in database)
+# @router.post("/documents")
+# def create_document(
+#     document: DocumentRequest,
+#     db: Session = Depends(get_db),
+#     current_user: User = Depends(get_current_user)
+# ):
 
-    db_document = Document(
-        title = document.title
-    )
+#     db_document = Document(
+#     title=document.title,
+#     user_id=current_user.id
+# )
 
-    db.add(db_document)
-    db.commit()
-    db.refresh(db_document)
+#     db.add(db_document)
+#     db.commit()
+#     db.refresh(db_document)
 
-    return {
-        "message" : "Document created successfully! ",
-        "documents" : db_document
-    }
+#     return {
+#         "message" : "Document created successfully! ",
+#         "documents" : db_document
+#     }
 
 
 # return data from database
-@router.get("/documents/{document_id}")
-def get_documents(db : Session = Depends(get_db)):
-    documents = db.query(Document).all()
+@router.get("/documents")
+def get_documents(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    documents = (
+        db.query(Document)
+        .filter(Document.user_id == current_user.id)
+        .all()
+    )
+
     return {
-        "documents" : documents
+        "documents": documents
+    }
+
+# return document with document id
+@router.get("/documents/{document_id}")
+def get_document(
+    document_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    document = (
+        db.query(Document)
+        .filter(
+            Document.id == document_id,
+            Document.user_id == current_user.id
+        )
+        .first()
+    )
+
+    if document is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Document not found"
+        )
+
+    return {
+        "document": document
     }
 
 
-# delete document
-@router.delete("/documents/{document_id}")  
+@router.delete("/documents/{document_id}")
 def delete_document(
-    document_id : int,
-    db: Session = Depends(get_db)
-     ):
-
+    document_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
     db_document = (
-         db.query(Document)
-         .filter(Document.id == document_id)
-         .first()
-    )     
-
-    db.delete(db_document)
-    db.commit()
-    return {
-            "message" : "Document deleted successfully",
-            }
- 
-
-# update document
-@router.put("/documents/{document_id}")
-def update_document(
-    document_id : int, 
-    document : DocumentRequest,
-    db: Session = Depends(get_db)
-    ):
-
-    db_document = (
-        db.query(Document).filter(Document.id == document_id).first()
+        db.query(Document)
+        .filter(
+            Document.id == document_id,
+            Document.user_id == current_user.id
+        )
+        .first()
     )
 
     if db_document is None:
-            return {
-                "message" : "Document not found"
-            }
+        raise HTTPException(
+            status_code=404,
+            detail="Document not found"
+        )
+
+    db.delete(db_document)
+    db.commit()
+
+    return {
+        "message": "Document deleted successfully"
+    }
+
+@router.put("/documents/{document_id}")
+def update_document(
+    document_id: int,
+    document: DocumentRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    db_document = (
+        db.query(Document)
+        .filter(
+            Document.id == document_id,
+            Document.user_id == current_user.id
+        )
+        .first()
+    )
+
+    if db_document is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Document not found"
+        )
 
     db_document.title = document.title
+
     db.commit()
     db.refresh(db_document)
 
     return {
-            "message" : "Document updated successfully",
-            "document" : db_document
-            }
+        "message": "Document updated successfully",
+        "document": db_document
+    }
 
-
+# upload document
 @router.post("/upload")
 async def upload_pdf(
-    file : UploadFile = File(...),
-    db : Session = Depends(get_db)
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     # Read uploaded file
     contents = await file.read()
@@ -115,7 +160,7 @@ async def upload_pdf(
     with open(file_path, "wb") as buffer:
         buffer.write(contents)
 
-    # open the saved PDF
+    # Open the saved PDF
     reader = PdfReader(file_path)
 
     # Extract all text
@@ -126,22 +171,25 @@ async def upload_pdf(
 
         if text:
             all_text += text + "\n"
-        
-    # save to database
+
+    # Save document to database
     new_document = Document(
-        title = file.filename,
-        file_path = file_path,
-        content = all_text
+        title=file.filename,
+        file_path=file_path,
+        content=all_text,
+        user_id=current_user.id
     )
+
     db.add(new_document)
     db.commit()
     db.refresh(new_document)
 
-    return{
-        "message" : "PDF upload successfully!",
-        "documeny" : {
-            "id" : new_document.id,
-            "title" : new_document.title,
-            "file_path" : new_document.file_path
+    return {
+        "message": "PDF upload successfully!",
+        "document": {
+            "id": new_document.id,
+            "title": new_document.title,
+            "file_path": new_document.file_path,
+            "user_id": new_document.user_id
         }
     }

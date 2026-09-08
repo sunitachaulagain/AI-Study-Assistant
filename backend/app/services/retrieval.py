@@ -2,11 +2,13 @@ from sqlalchemy.orm import Session
 
 from backend.app.database.database import SessionLocal
 from backend.app.models.chunk import Chunk
+from backend.app.models.document import Document
 from backend.app.services.embedding_service import generate_embedding
 
 
 def retrieve_chunks(
     query: str,
+    user_id: int,
     top_k: int = 5
 ):
     db: Session = SessionLocal()
@@ -16,6 +18,8 @@ def retrieve_chunks(
 
         results = (
             db.query(Chunk)
+            .join(Document, Chunk.document_id == Document.id)
+            .filter(Document.user_id == user_id)
             .order_by(
                 Chunk.embedding.cosine_distance(query_embedding)
             )
@@ -32,9 +36,16 @@ def retrieve_chunks(
 if __name__ == "__main__":
     query = "What are the main causes of road accidents in Nepal?"
 
-    results = retrieve_chunks(query)
+    # Test with an existing user
+    user_id = 3
+
+    results = retrieve_chunks(
+        query,
+        user_id=user_id
+    )
 
     print(f"\nQuery: {query}")
+    print(f"User ID: {user_id}")
     print(f"Found {len(results)} relevant chunks\n")
 
     for i, chunk in enumerate(results, 1):
