@@ -1,3 +1,4 @@
+import os
 from datetime import datetime, timedelta, timezone
 
 import jwt
@@ -6,9 +7,9 @@ from pwdlib import PasswordHash
 
 password_hash = PasswordHash.recommended()
 
-SECRET_KEY = "TjAZnkRnnfroQyAdpL3mlpeW5FCOId89bYYyVbpckjM"
+SECRET_KEY = os.getenv("JWT_SECRET_KEY", "change-me-in-production")
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24
 
 
 def hash_password(password: str) -> str:

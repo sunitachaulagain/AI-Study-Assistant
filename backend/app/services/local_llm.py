@@ -1,21 +1,59 @@
-from transformers import pipeline
+import logging
 
+import torch
+from transformers import pipeline, AutoModelForCausalLM, AutoTokenizer
+
+logger = logging.getLogger(__name__)
 
 MODEL_NAME = "Qwen/Qwen2.5-1.5B-Instruct"
 
 
-print("Loading local LLM...")
+logger.info("Loading local LLM...")
+
+if torch.cuda.is_available():
+    gpu_name = torch.cuda.get_device_name(0)
+    gpu_mem = torch.cuda.get_device_properties(0).total_mem / (1024**3)
+    logger.info(f"GPU detected: {gpu_name} ({gpu_mem:.1f} GB)")
+    device_map = "auto"
+    torch_dtype = torch.float16
+else:
+    logger.info("No GPU detected, using CPU")
+    device_map = None
+    torch_dtype = torch.float32
 
 generator = pipeline(
     "text-generation",
     model=MODEL_NAME,
-    device=-1,  # CPU
+    device_map=device_map,
+    torch_dtype=torch_dtype,
 )
 
-print("Local LLM loaded successfully.")
+logger.info("Local LLM loaded successfully.")
 
 
-def generate_answer(question: str, context: str) -> str:
+def generate_text(
+    prompt: str,
+    max_new_tokens: int = 200
+) -> str:
+
+    logger.debug("Generating response...")
+
+    result = generator(
+        prompt,
+        max_new_tokens=max_new_tokens,
+        do_sample=False,
+        return_full_text=False,
+    )
+
+    logger.debug("Generation completed.")
+
+    return result[0]["generated_text"].strip()
+
+
+def generate_answer(
+    question: str,
+    context: str
+) -> str:
 
     prompt = f"""You are an AI study assistant.
 
@@ -35,27 +73,7 @@ Question:
 Answer:
 """
 
-    result = generator(
+    return generate_text(
         prompt,
-        max_new_tokens=200,
-        do_sample=False,
+        max_new_tokens=80
     )
-
-    generated_text = result[0]["generated_text"]
-
-    return generated_text[len(prompt):].strip()
-
-
-if __name__ == "__main__":
-
-    answer = generate_answer(
-        "What are the main causes of road accidents in Nepal?",
-        """
-        Road accidents in Nepal are influenced by heavy traffic,
-        poor road infrastructure, variable weather conditions,
-        narrow roads, unpredictable weather, and poor road conditions.
-        """
-    )
-
-    print("\nGenerated answer:")
-    print(answer)

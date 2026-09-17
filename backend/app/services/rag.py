@@ -1,5 +1,9 @@
+import logging
+
 from backend.app.services.retrieval import retrieve_chunks
 from backend.app.services.local_llm import generate_answer
+
+logger = logging.getLogger(__name__)
 
 
 def answer_question(
@@ -38,21 +42,15 @@ def answer_question(
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.DEBUG)
 
     question = "What are the main causes of road accidents in Nepal?"
 
-    print("\nQuestion:")
-    print(question)
+    logger.info(f"Question: {question}")
 
-    print("\nGenerating answer...")
-
-    # For direct testing, use an existing user ID
     answer = answer_question(
         question=question,
         user_id=3
     )
 
-    print("\n" + "=" * 80)
-    print("ANSWER")
-    print("=" * 80)
-    print(answer)
+    logger.info(f"Answer: {answer}")

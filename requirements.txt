@@ -23,4 +23,5 @@ scikit-learn==1.9.0
 scipy==1.18.0
 torch==2.13.0
 transformers==5.15.0
-huggingface-hub==1.27.0    
+huggingface-hub==1.27.0
+accelerate>=1.0.0

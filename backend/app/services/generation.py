@@ -1,14 +1,4 @@
-from transformers import pipeline
-
-
-MODEL_NAME = "Qwen/Qwen2.5-1.5B-Instruct"
-
-
-generator = pipeline(
-    "text-generation",
-    model=MODEL_NAME,
-    device_map="auto",
-)
+from backend.app.services.local_llm import generate_text
 
 
 def generate_answer(question, context):
@@ -29,10 +19,7 @@ Question:
 Answer:
 """
 
-    result = generator(
+    return generate_text(
         prompt,
-        max_new_tokens=300,
-        do_sample=False,
+        max_new_tokens=300
     )
-
-    return result[0]["generated_text"]

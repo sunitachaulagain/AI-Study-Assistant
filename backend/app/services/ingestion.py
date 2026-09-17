@@ -1,3 +1,4 @@
+import logging
 from pathlib import Path
 
 from sqlalchemy.orm import Session
@@ -10,7 +11,9 @@ from backend.app.utils.chunking import (
     split_sentences,
     chunk_text,
 )
-from backend.app.services.embedding_service import generate_embedding
+from backend.app.services.embedding_service import generate_embeddings_batch
+
+logger = logging.getLogger(__name__)
 
 
 def ingest_document(file_path: str, user_id: int):
@@ -39,7 +42,7 @@ def ingest_document(file_path: str, user_id: int):
                     "This document belongs to another user."
                 )
 
-            print(
+            logger.info(
                 f"Document already exists in database "
                 f"(ID: {document.id})."
             )
@@ -52,13 +55,13 @@ def ingest_document(file_path: str, user_id: int):
             )
 
             if existing_chunks > 0:
-                print(
+                logger.info(
                     f"Document already has {existing_chunks} chunks."
                 )
-                print("Skipping ingestion.")
+                logger.info("Skipping ingestion.")
                 return
 
-            print("No chunks found. Processing existing document...")
+            logger.info("No chunks found. Processing existing document...")
 
         else:
             # Read PDF
@@ -88,7 +91,7 @@ def ingest_document(file_path: str, user_id: int):
             db.add(document)
             db.flush()
 
-            print(f"Created new document. ID: {document.id}")
+            logger.info(f"Created new document. ID: {document.id}")
 
         # If existing document has content, use it
         if document.content:
@@ -122,32 +125,32 @@ def ingest_document(file_path: str, user_id: int):
             overlap=100,
         )
 
-        print(f"Extracted/processed characters: {len(cleaned_text)}")
-        print(f"Sentences: {len(sentences)}")
-        print(f"Chunks: {len(chunks)}")
+        logger.info(f"Extracted/processed characters: {len(cleaned_text)}")
+        logger.info(f"Sentences: {len(sentences)}")
+        logger.info(f"Chunks: {len(chunks)}")
 
-        # Generate embeddings and save chunks
-        for index, chunk in enumerate(chunks):
+        # Generate embeddings in batch and save chunks
+        embeddings = generate_embeddings_batch(chunks)
 
-            embedding = generate_embedding(chunk)
-
+        for index, (chunk_content, embedding) in enumerate(
+            zip(chunks, embeddings)
+        ):
             db_chunk = Chunk(
                 document_id=document.id,
                 chunk_index=index,
-                content=chunk,
+                content=chunk_content,
                 embedding=embedding,
             )
-
             db.add(db_chunk)
 
             if index % 10 == 0:
-                print(
+                logger.debug(
                     f"Processed chunk {index}/{len(chunks)}"
                 )
 
         db.commit()
 
-        print("Document ingestion completed successfully.")
+        logger.info("Document ingestion completed successfully.")
 
     except Exception:
         db.rollback()

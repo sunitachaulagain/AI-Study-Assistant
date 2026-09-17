@@ -1,9 +1,13 @@
+import logging
+
 from sqlalchemy.orm import Session
 
 from backend.app.database.database import SessionLocal
 from backend.app.models.chunk import Chunk
 from backend.app.models.document import Document
 from backend.app.services.embedding_service import generate_embedding
+
+logger = logging.getLogger(__name__)
 
 
 def retrieve_chunks(
@@ -34,6 +38,8 @@ def retrieve_chunks(
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.DEBUG)
+
     query = "What are the main causes of road accidents in Nepal?"
 
     # Test with an existing user
@@ -44,14 +50,10 @@ if __name__ == "__main__":
         user_id=user_id
     )
 
-    print(f"\nQuery: {query}")
-    print(f"User ID: {user_id}")
-    print(f"Found {len(results)} relevant chunks\n")
+    logger.info(f"Query: {query}")
+    logger.info(f"User ID: {user_id}")
+    logger.info(f"Found {len(results)} relevant chunks")
 
     for i, chunk in enumerate(results, 1):
-        print("=" * 80)
-        print(f"Result {i}")
-        print(f"Document ID: {chunk.document_id}")
-        print(f"Chunk index: {chunk.chunk_index}")
-        print("\nContent:")
-        print(chunk.content)
+        logger.info(f"Result {i} | Document ID: {chunk.document_id} | Chunk index: {chunk.chunk_index}")
+        logger.debug(f"Content: {chunk.content}")
