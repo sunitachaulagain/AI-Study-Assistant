@@ -1,9 +1,10 @@
 from pydantic import BaseModel
-from typing import List
+from typing import List, Optional
 
 
 class QuizRequest(BaseModel):
     topic: str = ""
+    subject_id: Optional[int] = None
 
 
 class QuizQuestion(BaseModel):

@@ -9,15 +9,21 @@ logger = logging.getLogger(__name__)
 def answer_question(
     question: str,
     user_id: int,
-    top_k: int = 5
+    top_k: int = 5,
+    subject_id: int = None
 ) -> str:
+
+    logger.info(f"answer_question: user_id={user_id}, subject_id={subject_id}, question={question[:80]}")
 
     # Retrieve relevant chunks only from the current user's documents
     chunks = retrieve_chunks(
         question,
         user_id=user_id,
-        top_k=top_k
+        top_k=top_k,
+        subject_id=subject_id
     )
+
+    logger.info(f"Retrieved {len(chunks)} chunks")
 
     if not chunks:
         return "I could not find relevant information in your documents."
@@ -32,11 +38,20 @@ def answer_question(
 
     context = "\n\n".join(context_parts)
 
+    # Limit context to prevent oversized prompts
+    max_context_chars = 2000
+    if len(context) > max_context_chars:
+        context = context[:max_context_chars] + "\n[...truncated...]"
+
+    logger.info(f"Context length: {len(context)} chars")
+
     # Generate answer using the local LLM
     answer = generate_answer(
         question=question,
         context=context
     )
+
+    logger.info(f"Answer length: {len(answer)} chars")
 
     return answer
 

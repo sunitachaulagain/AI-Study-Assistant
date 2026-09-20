@@ -8,10 +8,14 @@ from backend.app.models.document import Document
 from backend.app.api.chat import router as chat_router
 from fastapi.middleware.cors import CORSMiddleware
 from backend.app.api.quiz import router as quiz_router
+from backend.app.api.flashcard import router as flashcard_router
 from backend.app.models.user_stats import UserStats
 from backend.app.models.study_plan import StudyPlan
+from backend.app.models.subject import Subject
+from backend.app.models.chat_message import ChatMessage
 from backend.app.api.dashboard import router as dashboard_router
 from backend.app.api.study_plan import router as study_plan_router
+from backend.app.api.subject import router as subject_router
 
 logging.basicConfig(
     level=logging.INFO,
@@ -30,10 +34,12 @@ app.add_middleware(
 
 app.include_router(chat_router)
 app.include_router(auth.router)
+app.include_router(subject_router)
 
 Base.metadata.create_all(bind=engine)
 app.include_router(document.router)
 app.include_router(quiz_router)
+app.include_router(flashcard_router)
 app.include_router(dashboard_router)
 app.include_router(study_plan_router)
 

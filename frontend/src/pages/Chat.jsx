@@ -1,12 +1,36 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import authFetch from "../services/authFetch";
 import "./Chat.css";
 
-function Chat({ onNavigate }) {
-  const [messages, setMessages] = useState([]);
+function Chat() {
+  const [messages, setMessages] = useState(() => {
+    const saved = sessionStorage.getItem("chat_messages");
+    return saved ? JSON.parse(saved) : [];
+  });
   const [question, setQuestion] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [subjects, setSubjects] = useState([]);
+  const [selectedSubject, setSelectedSubject] = useState("");
+
+  useEffect(() => {
+    sessionStorage.setItem("chat_messages", JSON.stringify(messages));
+  }, [messages]);
+
+  useEffect(() => {
+    fetchSubjects();
+  }, []);
+
+  const fetchSubjects = async () => {
+    try {
+      const response = await authFetch("/subjects");
+      if (!response.ok) return;
+      const data = await response.json();
+      setSubjects(data.subjects || []);
+    } catch (error) {
+      console.error("Subjects error:", error);
+    }
+  };
 
   const handleSend = async () => {
     const trimmedQuestion = question.trim();
@@ -30,6 +54,12 @@ function Chat({ onNavigate }) {
     setLoading(true);
 
     try {
+      const body = { question: trimmedQuestion };
+
+      if (selectedSubject) {
+        body.subject_id = parseInt(selectedSubject);
+      }
+
       const response = await authFetch(
         "/chat",
         {
@@ -37,9 +67,7 @@ function Chat({ onNavigate }) {
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({
-            question: trimmedQuestion,
-          }),
+          body: JSON.stringify(body),
         }
       );
 
@@ -87,6 +115,7 @@ function Chat({ onNavigate }) {
 
   const handleClearChat = () => {
     setMessages([]);
+    sessionStorage.removeItem("chat_messages");
     setError("");
   };
 
@@ -114,6 +143,23 @@ function Chat({ onNavigate }) {
         )}
 
       </div>
+
+      {/* Subject Filter */}
+      {subjects.length > 0 && (
+        <div className="chat-subject-filter">
+          <label htmlFor="chat-subject">Scope:</label>
+          <select
+            id="chat-subject"
+            value={selectedSubject}
+            onChange={(e) => setSelectedSubject(e.target.value)}
+          >
+            <option value="">All documents</option>
+            {subjects.map((s) => (
+              <option key={s.id} value={s.id}>{s.name}</option>
+            ))}
+          </select>
+        </div>
+      )}
 
       {/* Chat container */}
       <div className="chat-container">

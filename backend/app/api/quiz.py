@@ -35,7 +35,8 @@ async def create_quiz(
         partial(
             generate_quiz,
             user_id=current_user.id,
-            topic=request.topic
+            topic=request.topic,
+            subject_id=request.subject_id
         )
     )
 

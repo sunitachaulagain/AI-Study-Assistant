@@ -1,8 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import authFetch from "../services/authFetch";
 import "./Quiz.css";
 
-function Quiz({ onNavigate }) {
+function Quiz() {
+  const navigate = useNavigate();
   const [topic, setTopic] = useState("");
   const [questions, setQuestions] = useState([]);
   const [answers, setAnswers] = useState({});
@@ -11,6 +13,23 @@ function Quiz({ onNavigate }) {
   const [error, setError] = useState("");
   const [completionRecorded, setCompletionRecorded] =
     useState(false);
+  const [subjects, setSubjects] = useState([]);
+  const [selectedSubject, setSelectedSubject] = useState("");
+
+  useEffect(() => {
+    fetchSubjects();
+  }, []);
+
+  const fetchSubjects = async () => {
+    try {
+      const response = await authFetch("/subjects");
+      if (!response.ok) return;
+      const data = await response.json();
+      setSubjects(data.subjects || []);
+    } catch (error) {
+      console.error("Subjects error:", error);
+    }
+  };
 
   const generateQuiz = async () => {
     setLoading(true);
@@ -32,6 +51,9 @@ function Quiz({ onNavigate }) {
 
           body: JSON.stringify({
             topic: topic.trim(),
+            subject_id: selectedSubject
+              ? parseInt(selectedSubject)
+              : null,
           }),
         }
       );
@@ -264,6 +286,30 @@ function Quiz({ onNavigate }) {
               Create multiple-choice questions from
               your uploaded study materials.
             </p>
+
+            <div className="quiz-input-group">
+
+              <label htmlFor="quiz-subject">
+                Subject
+              </label>
+
+              <select
+                id="quiz-subject"
+                value={selectedSubject}
+                onChange={(e) => setSelectedSubject(e.target.value)}
+                disabled={loading}
+              >
+                <option value="">All subjects</option>
+                {subjects.map((s) => (
+                  <option key={s.id} value={s.id}>{s.name}</option>
+                ))}
+              </select>
+
+              <small>
+                Optionally scope the quiz to a specific subject.
+              </small>
+
+            </div>
 
             <div className="quiz-input-group">
 
@@ -563,7 +609,7 @@ function Quiz({ onNavigate }) {
                 <button
                   className="submit-quiz-button"
                   onClick={() =>
-                    onNavigate("dashboard")
+                    navigate("/dashboard")
                   }
                 >
                   Back to Dashboard

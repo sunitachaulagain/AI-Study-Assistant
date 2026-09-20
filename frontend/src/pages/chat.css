@@ -1,8 +1,7 @@
 .chat-page {
   flex: 1;
-  min-height: 100vh;
   background: #f5f7fb;
-  padding: 35px 40px;
+  padding: 32px 40px;
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
@@ -39,6 +38,30 @@
 
 .clear-chat-button:hover {
   background: #f9fafb;
+}
+
+/* Subject Filter */
+
+.chat-subject-filter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.chat-subject-filter label {
+  font-size: 14px;
+  color: #6b7280;
+  white-space: nowrap;
+}
+
+.chat-subject-filter select {
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 14px;
+  background: white;
+  cursor: pointer;
 }
 
 /* Chat container */

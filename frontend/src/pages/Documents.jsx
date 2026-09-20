@@ -2,20 +2,47 @@ import { useEffect, useState } from "react";
 import authFetch from "../services/authFetch";
 import "./Documents.css";
 
-function Documents({ onNavigate }) {
+function Documents() {
   const [documents, setDocuments] = useState([]);
+  const [subjects, setSubjects] = useState([]);
+  const [selectedSubject, setSelectedSubject] = useState("");
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState("");
+  const [uploadSubject, setUploadSubject] = useState("");
 
   useEffect(() => {
     fetchDocuments();
+    fetchSubjects();
   }, []);
+
+  useEffect(() => {
+    fetchDocuments();
+  }, [selectedSubject]);
+
+  const fetchSubjects = async () => {
+    try {
+      const response = await authFetch("/subjects");
+
+      if (!response.ok) return;
+
+      const data = await response.json();
+      setSubjects(data.subjects || []);
+    } catch (error) {
+      console.error("Subjects error:", error);
+    }
+  };
 
   // Fetch all documents for the logged-in user
   const fetchDocuments = async () => {
     try {
-      const response = await authFetch("/documents");
+      let url = "/documents";
+
+      if (selectedSubject) {
+        url += `?subject_id=${selectedSubject}`;
+      }
+
+      const response = await authFetch(url);
 
       if (!response.ok) {
         throw new Error("Failed to fetch documents");
@@ -52,6 +79,10 @@ function Documents({ onNavigate }) {
     const formData = new FormData();
     formData.append("file", file);
 
+    if (uploadSubject) {
+      formData.append("subject_id", uploadSubject);
+    }
+
     try {
       const response = await authFetch(
         "/upload",
@@ -68,6 +99,7 @@ function Documents({ onNavigate }) {
       }
 
       setMessage("Document uploaded successfully!");
+      setUploadSubject("");
 
       await fetchDocuments();
     } catch (error) {
@@ -137,20 +169,52 @@ function Documents({ onNavigate }) {
           </p>
         </div>
 
-        {/* Upload button */}
-        <label className="upload-button">
-          {uploading
-            ? "Uploading..."
-            : "+ Upload Document"}
+      </div>
 
-          <input
-            type="file"
-            accept=".pdf,application/pdf"
-            onChange={handleUpload}
+      {/* Subject Filter + Upload */}
+      <div className="documents-toolbar">
+
+        <div className="subject-filter">
+          <label htmlFor="filter-subject">Filter by subject:</label>
+          <select
+            id="filter-subject"
+            value={selectedSubject}
+            onChange={(e) => setSelectedSubject(e.target.value)}
+          >
+            <option value="">All Subjects</option>
+            {subjects.map((s) => (
+              <option key={s.id} value={s.id}>{s.name}</option>
+            ))}
+          </select>
+        </div>
+
+        <div className="upload-area">
+          <select
+            className="upload-subject-select"
+            value={uploadSubject}
+            onChange={(e) => setUploadSubject(e.target.value)}
             disabled={uploading}
-            hidden
-          />
-        </label>
+          >
+            <option value="">No subject</option>
+            {subjects.map((s) => (
+              <option key={s.id} value={s.id}>{s.name}</option>
+            ))}
+          </select>
+
+          <label className="upload-button">
+            {uploading
+              ? "Uploading..."
+              : "+ Upload Document"}
+
+            <input
+              type="file"
+              accept=".pdf,application/pdf"
+              onChange={handleUpload}
+              disabled={uploading}
+              hidden
+            />
+          </label>
+        </div>
 
       </div>
 
@@ -166,7 +230,7 @@ function Documents({ onNavigate }) {
       {/* Documents Card */}
       <div className="documents-card">
 
-        {documents.length === 0 ? (
+            {documents.length === 0 ? (
 
           /* Empty State */
           <div className="documents-empty">
@@ -176,7 +240,7 @@ function Documents({ onNavigate }) {
             </div>
 
             <h2>
-              No documents yet
+              {selectedSubject ? "No documents in this subject" : "No documents yet"}
             </h2>
 
             <p>
@@ -222,7 +286,10 @@ function Documents({ onNavigate }) {
                   </h3>
 
                   <p>
-                    Document ID: {document.id}
+                    {document.subject_id
+                      ? subjects.find((s) => s.id === document.subject_id)?.name || "Unknown subject"
+                      : "No subject"
+                    }
                   </p>
 
                 </div>

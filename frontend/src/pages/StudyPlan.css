@@ -1,6 +1,5 @@
 .study-plan {
   flex: 1;
-  min-height: 100vh;
   background: #f5f7fb;
   color: #1f2937;
 }
@@ -582,7 +581,7 @@
 /* Loading */
 
 .loading {
-  min-height: 100vh;
+  flex: 1;
   display: flex;
   justify-content: center;
   align-items: center;

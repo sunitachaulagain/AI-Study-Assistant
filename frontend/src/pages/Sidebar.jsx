@@ -1,72 +1,86 @@
+import { NavLink, useNavigate } from "react-router-dom";
 import "./Sidebar.css";
 
-function Sidebar({ currentPage, onNavigate }) {
+function Sidebar() {
+  const navigate = useNavigate();
+
   const handleLogout = () => {
     localStorage.removeItem("access_token");
-    window.location.reload();
+    navigate("/login");
   };
 
   return (
     <aside className="sidebar">
 
-      <div className="logo">
-        <h2>AI Study Assistant</h2>
-        <span>Learn smarter with AI</span>
-      </div>
-
       <nav className="sidebar-nav">
 
-        <button
-          className={`nav-item ${currentPage === "dashboard" ? "active" : ""}`}
-          onClick={() => onNavigate("dashboard")}
+        <NavLink
+          to="/dashboard"
+          className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}
         >
           <span>🏠</span>
           Dashboard
-        </button>
+        </NavLink>
 
-        <button
-          className={`nav-item ${currentPage === "documents" ? "active" : ""}`}
-          onClick={() => onNavigate("documents")}
+        <NavLink
+          to="/documents"
+          className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}
         >
           <span>📚</span>
           Documents
-        </button>
+        </NavLink>
 
-        <button
-          className={`nav-item ${currentPage === "chat" ? "active" : ""}`}
-          onClick={() => onNavigate("chat")}
+        <NavLink
+          to="/subjects"
+          className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}
+        >
+          <span>📂</span>
+          Subjects
+        </NavLink>
+
+        <NavLink
+          to="/chat"
+          className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}
         >
           <span>💬</span>
           AI Chat
-        </button>
+        </NavLink>
 
-        <button
-          className={`nav-item ${currentPage === "quiz" ? "active" : ""}`}
-          onClick={() => onNavigate("quiz")}
+        <NavLink
+          to="/quiz"
+          className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}
         >
           <span>📝</span>
           Quiz
-        </button>
+        </NavLink>
 
-        <button
-          className={`nav-item ${currentPage === "study-plan" ? "active" : ""}`}
-          onClick={() => onNavigate("study-plan")}
+        <NavLink
+          to="/flashcards"
+          className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}
+        >
+          <span>🃏</span>
+          Flashcards
+        </NavLink>
+
+        <NavLink
+          to="/study-plan"
+          className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}
         >
           <span>📅</span>
           Study Plan
-        </button>
+        </NavLink>
 
       </nav>
 
       <div className="sidebar-bottom">
 
-        <button
-          className={`nav-item ${currentPage === "settings" ? "active" : ""}`}
-          onClick={() => onNavigate("settings")}
+        <NavLink
+          to="/settings"
+          className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}
         >
           <span>⚙️</span>
           Settings
-        </button>
+        </NavLink>
 
         <button
           className="nav-item logout"

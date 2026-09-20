@@ -9,7 +9,8 @@ logger = logging.getLogger(__name__)
 def generate_quiz(
     user_id: int,
     topic: str = "",
-    number_of_questions: int = 5
+    number_of_questions: int = 5,
+    subject_id: int = None
 ):
 
     query = topic.strip()
@@ -21,7 +22,8 @@ def generate_quiz(
     chunks = retrieve_chunks(
         query,
         user_id=user_id,
-        top_k=3
+        top_k=3,
+        subject_id=subject_id
     )
 
     if not chunks:

@@ -13,17 +13,29 @@ logger = logging.getLogger(__name__)
 def retrieve_chunks(
     query: str,
     user_id: int,
-    top_k: int = 5
+    top_k: int = 5,
+    subject_id: int = None
 ):
     db: Session = SessionLocal()
 
     try:
         query_embedding = generate_embedding(query)
 
-        results = (
+        logger.info(f"retrieve_chunks: user_id={user_id}, subject_id={subject_id}, top_k={top_k}, embedding_dim={len(query_embedding)}")
+
+        query_builder = (
             db.query(Chunk)
             .join(Document, Chunk.document_id == Document.id)
             .filter(Document.user_id == user_id)
+        )
+
+        if subject_id is not None:
+            query_builder = query_builder.filter(
+                Document.subject_id == subject_id
+            )
+
+        results = (
+            query_builder
             .order_by(
                 Chunk.embedding.cosine_distance(query_embedding)
             )
@@ -31,7 +43,13 @@ def retrieve_chunks(
             .all()
         )
 
+        logger.info(f"retrieve_chunks: found {len(results)} results")
+
         return results
+
+    except Exception as e:
+        logger.error(f"retrieve_chunks error: {e}")
+        return []
 
     finally:
         db.close()

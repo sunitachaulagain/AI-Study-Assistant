@@ -26,10 +26,7 @@ An AI-powered study assistant for university students that uses Retrieval-Augmen
 - PostgreSQL
 
 ### AI
-- LangChain
-- ChromaDB
-- Sentence Transformers
-- Google Gemini API
+
 
 ## Project Structure
 

@@ -1,7 +1,11 @@
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 
 from backend.app.database.database import SessionLocal
 from backend.app.models.user_stats import UserStats
+from backend.app.models.document import Document
+from backend.app.models.chunk import Chunk
+from backend.app.models.subject import Subject
 
 
 def get_or_create_stats(
@@ -95,10 +99,68 @@ def get_dashboard_stats(user_id: int):
         else:
             progress = 0
 
+        # Per-subject document and chunk counts
+        subject_rows = (
+            db.query(
+                Subject.id,
+                Subject.name,
+                func.count(Document.id).label("doc_count")
+            )
+            .outerjoin(
+                Document,
+                (Document.subject_id == Subject.id)
+                & (Document.user_id == user_id)
+            )
+            .filter(Subject.user_id == user_id)
+            .group_by(Subject.id, Subject.name)
+            .all()
+        )
+
+        subject_stats = []
+        for row in subject_rows:
+            chunk_count = (
+                db.query(func.count(Chunk.id))
+                .join(Document, Chunk.document_id == Document.id)
+                .filter(
+                    Document.user_id == user_id,
+                    Document.subject_id == row.id
+                )
+                .scalar()
+            )
+            subject_stats.append({
+                "subject_id": row.id,
+                "subject_name": row.name,
+                "document_count": row.doc_count,
+                "chunk_count": chunk_count
+            })
+
+        # Unassigned documents count
+        unassigned_doc_count = (
+            db.query(func.count(Document.id))
+            .filter(
+                Document.user_id == user_id,
+                Document.subject_id.is_(None)
+            )
+            .scalar()
+        )
+
+        unassigned_chunk_count = (
+            db.query(func.count(Chunk.id))
+            .join(Document, Chunk.document_id == Document.id)
+            .filter(
+                Document.user_id == user_id,
+                Document.subject_id.is_(None)
+            )
+            .scalar()
+        )
+
         return {
             "questions_asked": stats.questions_asked,
             "quizzes_completed": stats.quizzes_completed,
-            "study_progress": round(progress)
+            "study_progress": round(progress),
+            "subject_stats": subject_stats,
+            "unassigned_documents": unassigned_doc_count,
+            "unassigned_chunks": unassigned_chunk_count
         }
 
     finally:

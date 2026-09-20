@@ -1,15 +1,22 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import authFetch from "../services/authFetch";
 import "./Dashboard.css";
 
-function Dashboard({ onNavigate }) {
+function Dashboard() {
+  const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const [documents, setDocuments] = useState([]);
   const [stats, setStats] = useState({
     questions_asked: 0,
     quizzes_completed: 0,
     study_progress: 0,
+    subject_stats: [],
+    unassigned_documents: 0,
+    unassigned_chunks: 0,
   });
+  const [flashcards, setFlashcards] = useState([]);
+  const [flippedCard, setFlippedCard] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -18,7 +25,7 @@ function Dashboard({ onNavigate }) {
 
   const fetchDashboardData = async () => {
     try {
-      // Get current user
+      // Get current user first
       const userResponse = await authFetch("/auth/me");
 
       if (!userResponse.ok) {
@@ -26,52 +33,55 @@ function Dashboard({ onNavigate }) {
       }
 
       const userData = await userResponse.json();
-
       setUser(userData);
 
-      // Get documents
-      const documentsResponse = await authFetch("/documents");
+      // Fetch documents, stats in parallel
+      const [documentsResponse, statsResponse] = await Promise.all([
+        authFetch("/documents"),
+        authFetch("/dashboard/stats"),
+      ]);
 
-      if (!documentsResponse.ok) {
-        throw new Error("Failed to fetch documents");
+      if (documentsResponse.ok) {
+        const documentsData = await documentsResponse.json();
+        setDocuments(documentsData.documents || []);
       }
 
-      const documentsData =
-        await documentsResponse.json();
-
-      setDocuments(
-        documentsData.documents || []
-      );
-
-      // Get dashboard statistics
-      const statsResponse = await authFetch("/dashboard/stats");
-
-      if (!statsResponse.ok) {
-        throw new Error(
-          "Failed to fetch dashboard statistics"
-        );
+      if (statsResponse.ok) {
+        const statsData = await statsResponse.json();
+        setStats({
+          questions_asked: statsData.questions_asked || 0,
+          quizzes_completed: statsData.quizzes_completed || 0,
+          study_progress: statsData.study_progress || 0,
+          subject_stats: statsData.subject_stats || [],
+          unassigned_documents: statsData.unassigned_documents || 0,
+          unassigned_chunks: statsData.unassigned_chunks || 0,
+        });
       }
 
-      const statsData =
-        await statsResponse.json();
+      setLoading(false);
 
-      setStats({
-        questions_asked:
-          statsData.questions_asked || 0,
+      // Load flashcards separately after dashboard renders (non-blocking)
+      try {
+        const flashcardsResponse = await authFetch("/flashcards/", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            topic: "",
+            subject_id: null,
+            number_of_cards: 3,
+          }),
+        });
 
-        quizzes_completed:
-          statsData.quizzes_completed || 0,
-
-        study_progress:
-          statsData.study_progress || 0,
-      });
+        if (flashcardsResponse.ok) {
+          const flashcardsData = await flashcardsResponse.json();
+          setFlashcards(flashcardsData.cards || []);
+        }
+      } catch (flashcardError) {
+        console.error("Flashcards preview error:", flashcardError);
+      }
 
     } catch (error) {
-      console.error(
-        "Dashboard error:",
-        error
-      );
-    } finally {
+      console.error("Dashboard error:", error);
       setLoading(false);
     }
   };
@@ -175,6 +185,148 @@ function Dashboard({ onNavigate }) {
 
         </div>
 
+        {/* Subject Breakdown */}
+        {stats.subject_stats.length > 0 && (
+          <div className="dashboard-card subject-breakdown-card">
+
+            <div className="card-header">
+
+              <div>
+                <h2>Documents by Subject</h2>
+                <p>Your study material distribution</p>
+              </div>
+
+              <button
+                className="view-all"
+                onClick={() => navigate("/subjects")}
+              >
+                Manage
+              </button>
+
+            </div>
+
+            <div className="subject-breakdown-list">
+
+              {stats.subject_stats.map((subject) => (
+                <div className="subject-breakdown-item" key={subject.subject_id}>
+                  <div className="subject-breakdown-info">
+                    <span className="subject-breakdown-name">{subject.subject_name}</span>
+                    <span className="subject-breakdown-count">
+                      {subject.document_count} doc{subject.document_count !== 1 ? "s" : ""}
+                      {" · "}
+                      {subject.chunk_count} chunk{subject.chunk_count !== 1 ? "s" : ""}
+                    </span>
+                  </div>
+                  <div className="subject-breakdown-bar">
+                    <div
+                      className="subject-breakdown-fill"
+                      style={{
+                        width: `${Math.min(
+                          (subject.document_count / Math.max(documents.length, 1)) * 100,
+                          100
+                        )}%`,
+                      }}
+                    ></div>
+                  </div>
+                </div>
+              ))}
+
+              {stats.unassigned_documents > 0 && (
+                <div className="subject-breakdown-item">
+                  <div className="subject-breakdown-info">
+                    <span className="subject-breakdown-name unassigned">Unassigned</span>
+                    <span className="subject-breakdown-count">
+                      {stats.unassigned_documents} doc{stats.unassigned_documents !== 1 ? "s" : ""}
+                      {" · "}
+                      {stats.unassigned_chunks} chunk{stats.unassigned_chunks !== 1 ? "s" : ""}
+                    </span>
+                  </div>
+                  <div className="subject-breakdown-bar">
+                    <div
+                      className="subject-breakdown-fill unassigned-fill"
+                      style={{
+                        width: `${Math.min(
+                          (stats.unassigned_documents / Math.max(documents.length, 1)) * 100,
+                          100
+                        )}%`,
+                      }}
+                    ></div>
+                  </div>
+                </div>
+              )}
+
+            </div>
+
+          </div>
+        )}
+
+        {/* Flashcards Preview */}
+        {flashcards.length > 0 && (
+          <div className="dashboard-card flashcards-preview-card">
+
+            <div className="card-header">
+
+              <div>
+                <h2>Quick Flashcards</h2>
+
+                <p>
+                  Click a card to flip it
+                </p>
+              </div>
+
+              <button
+                className="view-all"
+                onClick={() =>
+                  navigate("/flashcards")
+                }
+              >
+                View All
+              </button>
+
+            </div>
+
+            <div className="flashcards-preview-grid">
+
+              {flashcards.map(
+                (card, index) => (
+                  <div
+                    className={`mini-flashcard ${
+                      flippedCard === index
+                        ? "flipped"
+                        : ""
+                    }`}
+                    key={index}
+                    onClick={() =>
+                      setFlippedCard(
+                        flippedCard === index
+                          ? null
+                          : index
+                      )
+                    }
+                  >
+                    <div className="mini-flashcard-inner">
+                      <div className="mini-flashcard-front">
+                        <div className="mini-flashcard-label">
+                          Q
+                        </div>
+                        <p>{card.front}</p>
+                      </div>
+                      <div className="mini-flashcard-back">
+                        <div className="mini-flashcard-label">
+                          A
+                        </div>
+                        <p>{card.back}</p>
+                      </div>
+                    </div>
+                  </div>
+                )
+              )}
+
+            </div>
+
+          </div>
+        )}
+
         {/* Dashboard Content */}
         <div className="dashboard-grid">
 
@@ -194,7 +346,7 @@ function Dashboard({ onNavigate }) {
               <button
                 className="view-all"
                 onClick={() =>
-                  onNavigate("documents")
+                  navigate("/documents")
                 }
               >
                 View All
@@ -220,7 +372,7 @@ function Dashboard({ onNavigate }) {
                 <button
                   className="primary-button"
                   onClick={() =>
-                    onNavigate("documents")
+                    navigate("/documents")
                   }
                 >
                   Upload Document
@@ -283,7 +435,7 @@ function Dashboard({ onNavigate }) {
               <button
                 className="action-button"
                 onClick={() =>
-                  onNavigate("documents")
+                  navigate("/documents")
                 }
               >
 
@@ -302,7 +454,7 @@ function Dashboard({ onNavigate }) {
               <button
                 className="action-button"
                 onClick={() =>
-                  onNavigate("chat")
+                  navigate("/chat")
                 }
               >
 
@@ -321,7 +473,7 @@ function Dashboard({ onNavigate }) {
               <button
                 className="action-button"
                 onClick={() =>
-                  onNavigate("quiz")
+                  navigate("/quiz")
                 }
               >
 
@@ -340,7 +492,7 @@ function Dashboard({ onNavigate }) {
               <button
                 className="action-button"
                 onClick={() =>
-                  onNavigate("study-plan")
+                  navigate("/study-plan")
                 }
               >
 
@@ -351,6 +503,25 @@ function Dashboard({ onNavigate }) {
 
                   <small>
                     Organize your learning
+                  </small>
+                </div>
+
+              </button>
+
+              <button
+                className="action-button"
+                onClick={() =>
+                  navigate("/flashcards")
+                }
+              >
+
+                <span>🃏</span>
+
+                <div>
+                  <strong>Flashcards</strong>
+
+                  <small>
+                    Boost your memorization
                   </small>
                 </div>
 

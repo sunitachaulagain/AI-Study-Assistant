@@ -1,15 +1,14 @@
 .documents-page {
   flex: 1;
-  min-height: 100vh;
   background: #f5f7fb;
-  padding: 40px;
+  padding: 32px 40px;
 }
 
 .documents-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 30px;
+  margin-bottom: 20px;
 }
 
 .documents-header h1 {
@@ -98,7 +97,7 @@
 }
 
 .documents-loading {
-  min-height: 100vh;
+  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -129,4 +128,67 @@
 
 .delete-button:hover {
   background: #fecaca;
+}
+
+/* Toolbar */
+.documents-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.subject-filter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.subject-filter label {
+  font-size: 14px;
+  color: #6b7280;
+  white-space: nowrap;
+}
+
+.subject-filter select {
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 14px;
+  background: white;
+  cursor: pointer;
+}
+
+.upload-area {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.upload-subject-select {
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 14px;
+  background: white;
+  cursor: pointer;
+}
+
+@media (max-width: 750px) {
+  .documents-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .subject-filter {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .upload-area {
+    flex-direction: column;
+    align-items: stretch;
+  }
 }

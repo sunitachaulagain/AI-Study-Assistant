@@ -12,7 +12,7 @@ logger.info("Loading local LLM...")
 
 if torch.cuda.is_available():
     gpu_name = torch.cuda.get_device_name(0)
-    gpu_mem = torch.cuda.get_device_properties(0).total_mem / (1024**3)
+    gpu_mem = torch.cuda.get_device_properties(0).total_memory / (1024**3)
     logger.info(f"GPU detected: {gpu_name} ({gpu_mem:.1f} GB)")
     device_map = "auto"
     torch_dtype = torch.float16
@@ -26,6 +26,7 @@ generator = pipeline(
     model=MODEL_NAME,
     device_map=device_map,
     torch_dtype=torch_dtype,
+    max_length=None,
 )
 
 logger.info("Local LLM loaded successfully.")
@@ -55,16 +56,13 @@ def generate_answer(
     context: str
 ) -> str:
 
-    prompt = f"""You are an AI study assistant.
+    prompt = f"""You are a helpful AI study assistant. Answer the student's question based on the study material provided below.
 
-Answer the user's question using ONLY the provided context.
+Use the information from the study material to give a clear, complete, and helpful answer. If the study material contains relevant information, always use it to answer — do not refuse if the answer can be found or reasonably inferred from the context.
 
-If the answer cannot be found in the context, say:
-"I could not find the answer in the provided documents."
+Only say "I could not find the answer in the provided documents" if the study material is completely unrelated to the question.
 
-Do not invent information.
-
-Context:
+Study Material:
 {context}
 
 Question:
@@ -75,5 +73,5 @@ Answer:
 
     return generate_text(
         prompt,
-        max_new_tokens=80
+        max_new_tokens=200
     )
